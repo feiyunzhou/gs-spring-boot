@@ -14,4 +14,6 @@ public interface InboxRepository extends CassandraRepository<Inbox, InboxKey> {
 
     @Query("select * from inbox where username = ?0 and time > ?1")
     List<Inbox> getInboxMessages(String userName, UUID time);
+
+    List<Inbox> getInboxesByKey_UsernameAndKey_TimeGreaterThan(String userName, UUID time);
 }

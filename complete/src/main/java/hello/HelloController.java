@@ -2,6 +2,7 @@ package hello;
 
 import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.collect.Lists;
+import com.google.gson.Gson;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -24,9 +25,7 @@ public class HelloController {
     PersonRepository personRepository;
     final Map deferredResultMap=new ConcurrentReferenceHashMap<>();
     @Autowired
-    MessageRepository messageRepository;
-    @Autowired
-    InboxRepository inboxRepository;
+    InboxMessageRepository inboxMessageRepository;
 
     @GetMapping("/")
     public String index() {
@@ -64,40 +63,14 @@ public class HelloController {
         log.info("servlet thread freed1111");
         return output;
     }
-
-   /* @GetMapping("/connect")
-    public DeferredResult<ResponseEntity<?>> connect(Model model) {
-        log.info(" request");
-        DeferredResult<ResponseEntity<?>> output = new DeferredResult<>();
-
-        ForkJoinPool.commonPool().submit(() -> {
-            log.info("Processing in separate thread");
-            try {
-                Thread.sleep(500000);
-            } catch (InterruptedException e) {
-            }
-            log.info("response ok!");
-            output.setResult(ResponseEntity.ok().build());
-        });
-
-        log.info("servlet thread freed1111");
-        output.onTimeout(new Runnable() {
-            @Override
-            public void run() {
-                log.error("timing out happened");
-            }
-        });
-        return output;
-    }*/
-
     @GetMapping("/connect")
-    public DeferredResult<ResponseEntity<?>>  longPolling(HttpServletRequest req){
+    public DeferredResult longPolling(HttpServletRequest req){
         String userName = req.getParameter("userName");
         log.info(String.format("user:%s started a long polling", userName));
         if (deferredResultMap.containsKey(userName)) {
             deferredResultMap.remove(userName);
         }
-        DeferredResult<ResponseEntity<?>>  deferredResult=new DeferredResult(90000L);
+        DeferredResult deferredResult=new DeferredResult(10000L);
         deferredResultMap.put(userName, deferredResult);
         log.info(deferredResultMap);
         deferredResult.onCompletion(()->{
@@ -117,34 +90,30 @@ public class HelloController {
     }
 
     @PostMapping("/msg")
-    public void returnLongPollingValue(HttpServletRequest req, @RequestBody Message msg){
+    public void returnLongPollingValue(HttpServletRequest req, @RequestBody InboxMessage msg){
         //save message to the inbox
-        Message messageWithId = Message.createMessage(msg.getUserName(), msg.getBody());
-        Message msginrepo = messageRepository.save(messageWithId);
-        Inbox inbox = Inbox.createInboxMessage(msginrepo.getMessageId(), false, msg.getTo(), msg.getUserName());
-        inboxRepository.save(inbox);
-
+        msg.setTime(UUIDs.timeBased());
+        inboxMessageRepository.save(msg);
         if (deferredResultMap.containsKey(msg.getTo())) {
             DeferredResult defRes = (DeferredResult) deferredResultMap.get(msg.getTo());
-            defRes.setResult(ResponseEntity.ok().body("sending message from: " + msg.getUserName() + " to: " + msg.getTo()));
+            Gson gson = new Gson();
+            defRes.setResult(gson.toJson("new msg"));
         }
         log.info(deferredResultMap);
         //defRes.setResult(ResponseEntity.ok().body("I receive msg from " + from));
     }
 
     @GetMapping("/msg")
-    public List<Message> fetchMessageByUser(HttpServletRequest req, String userName, String uuid) throws Exception {
+    public List<InboxMessage> fetchMessageByUser(HttpServletRequest req, String userName, String uuid) throws Exception {
         log.info(String.format("met msg for username:%s, uuid:%s", userName, uuid));
-        List<Inbox> inboxes = Lists.newArrayList();
+        List<InboxMessage> inboxes = Lists.newArrayList();
         if (uuid != null && !uuid.isEmpty()) {
-            inboxes = inboxRepository.findInboxesByKey_UsernameAndKey_TimeGreaterThan(userName, UUID.fromString(uuid));
+            inboxes = inboxMessageRepository.getInboxMessagesByToAndTimeGreaterThan(userName, UUID.fromString(uuid));
         } else {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-            inboxes = inboxRepository.findInboxesByKey_UsernameAndKey_TimeGreaterThan(userName, UUIDs.startOf(sdf.parse("20120503").getTime()));
+            inboxes = inboxMessageRepository.getInboxMessagesByToAndTimeGreaterThan(userName, UUIDs.startOf(sdf.parse("20120503").getTime()));
         }
-        List<UUID> messageIds = Lists.newArrayList();
-        inboxes.forEach(box -> messageIds.add(box.getMessageId()));
-        return messageRepository.findAllById(messageIds);
+        return inboxes;
     }
     @ExceptionHandler
     public void exceptionHandler(HttpServletRequest req, Exception ex) {
