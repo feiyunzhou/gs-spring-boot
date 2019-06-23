@@ -1,30 +1,27 @@
-package hello;
+package com.learner;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import java.net.URL;
-import java.sql.Date;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import com.datastax.driver.core.utils.UUIDs;
 import com.google.gson.Gson;
+import com.learner.messager.InboxMessage;
 import lombok.extern.log4j.Log4j2;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.json.GsonTester;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
-import sun.java2d.pipe.SpanShapeRenderer;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

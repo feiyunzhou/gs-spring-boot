@@ -1,8 +1,11 @@
-package hello;
+package com.learner.messager;
 
 import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
+import com.learner.Person;
+import com.learner.PersonKey;
+import com.learner.PersonRepository;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,51 +20,26 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 
+/**
+ *   messenger实现记录
+ *   1. 消息的处理
+ *      1）采用longpolling的方式, timeout 设置为30秒左右比较合适，可以看这里： https://tools.ietf.org/id/draft-loreto-http-bidirectional-07.html#timeouts
+ *      2）使用了
+ *   2. 数据的保存
+ *   3. 用户状态的处理
+ */
 @RestController
 @Log4j2
 public class HelloController {
-
     @Autowired
-    PersonRepository personRepository;
-    final Map deferredResultMap=new ConcurrentReferenceHashMap<>();
+    private PersonRepository personRepository;
+    private final Map deferredResultMap=new ConcurrentReferenceHashMap<>();
     @Autowired
-    InboxMessageRepository inboxMessageRepository;
+    private InboxMessageRepository inboxMessageRepository;
 
     @GetMapping("/")
     public String index() {
         return "Greetings from Spring Boot!";
-    }
-    @PostMapping("/person")
-    public ResponseEntity newperson() {
-        String firstName = generateString(new Random(), "ABCDEFGHIJKLMNOP", 5);
-        String lastname = generateString(new Random(), "ABCDEFGHIJKLMNOP", 5);
-        UUID uuid = UUID.randomUUID();
-        PersonKey pk = new PersonKey(firstName, LocalDateTime.now(), uuid);
-        Person person = new Person(pk, lastname, 3000.0d);
-
-        personRepository.insert(person);
-        return ResponseEntity.ok(uuid.toString() + ":::" + firstName + " " + lastname);
-    }
-
-    @GetMapping("/all")
-    public DeferredResult<ResponseEntity<?>> handleReqDefResult(Model model) {
-        log.info("Received async-deferredresult request");
-        DeferredResult<ResponseEntity<?>> output = new DeferredResult<>();
-
-        ForkJoinPool.commonPool().submit(() -> {
-            log.info("Processing in separate thread");
-            List<Person> personList = Lists.newArrayList();
-            try {
-                personList = personRepository.findAll();
-                Thread.sleep(5);
-            } catch (InterruptedException e) {
-            }
-            log.info("response ok!");
-            output.setResult(ResponseEntity.ok().body(personList));
-        });
-
-        log.info("servlet thread freed1111");
-        return output;
     }
     @GetMapping("/connect")
     public DeferredResult longPolling(HttpServletRequest req){
@@ -121,6 +99,38 @@ public class HelloController {
         String userName = req.getParameter("userName");
         log.info("userName:" + userName);
         log.error("failed exception", ex);
+    }
+
+    @PostMapping("/person")
+    public ResponseEntity newperson() {
+        String firstName = generateString(new Random(), "ABCDEFGHIJKLMNOP", 5);
+        String lastname = generateString(new Random(), "ABCDEFGHIJKLMNOP", 5);
+        UUID uuid = UUID.randomUUID();
+        PersonKey pk = new PersonKey(firstName, LocalDateTime.now(), uuid);
+        Person person = new Person(pk, lastname, 3000.0d);
+
+        personRepository.insert(person);
+        return ResponseEntity.ok(uuid.toString() + ":::" + firstName + " " + lastname);
+    }
+    @GetMapping("/all")
+    public DeferredResult<ResponseEntity<?>> handleReqDefResult(Model model) {
+        log.info("Received async-deferredresult request");
+        DeferredResult<ResponseEntity<?>> output = new DeferredResult<>();
+
+        ForkJoinPool.commonPool().submit(() -> {
+            log.info("Processing in separate thread");
+            List<Person> personList = Lists.newArrayList();
+            try {
+                personList = personRepository.findAll();
+                Thread.sleep(5);
+            } catch (InterruptedException e) {
+            }
+            log.info("response ok!");
+            output.setResult(ResponseEntity.ok().body(personList));
+        });
+
+        log.info("servlet thread freed1111");
+        return output;
     }
     public static String generateString(Random rng, String characters, int length)
     {

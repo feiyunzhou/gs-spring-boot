@@ -1,4 +1,4 @@
-package hello;
+package com.learner.messager;
 
 import com.datastax.driver.core.utils.UUIDs;
 import lombok.Data;

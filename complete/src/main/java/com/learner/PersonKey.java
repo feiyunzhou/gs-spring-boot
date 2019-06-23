@@ -1,4 +1,4 @@
-package hello;
+package com.learner;
 
 import lombok.Getter;
 import lombok.Setter;

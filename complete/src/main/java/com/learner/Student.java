@@ -1,4 +1,4 @@
-package hello;
+package com.learner;
 
 public class Student {
 }

@@ -1,4 +1,4 @@
-package hello;
+package com.learner;
 
 import org.springframework.data.cassandra.repository.CassandraRepository;
 import org.springframework.data.cassandra.repository.Query;
