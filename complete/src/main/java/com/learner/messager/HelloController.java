@@ -24,9 +24,18 @@ import java.util.concurrent.ForkJoinPool;
  *   messenger实现记录
  *   1. 消息的处理
  *      1）采用longpolling的方式, timeout 设置为30秒左右比较合适，可以看这里： https://tools.ietf.org/id/draft-loreto-http-bidirectional-07.html#timeouts
- *      2）使用了
+ *      2）使用了springde DeferredResult，实际也就是NIO技术，异步的方式处理请求，只有一个线程处理I/O，这样可以支持大量的请求，例如可以每台服务器可以支持5万个请求
+ *      3）需要用一张表来跟踪当前哪天服务器连接着用户。
  *   2. 数据的保存
+ *       1）将数据保存在cassandra中，设计了一个模型，也就是InboxMessage, 也就是用户的收到的消息。以userName作为partition，创建时间作为某个节点上数据的索引。 可以把这个表看为一个map，
+ *          key是userName, value是sortedMap， 这个sortedMap中key是排序的时间，值是消息的内容。通过这种方式，可以快速获取某个用户获得的内容，但坏处是，如果某个用户的消息特别多的时候，这个数据量会比较大，但我们可以
+ *          采用其他方式来避免这个问题 a)对userName再做分区。b)设置消息的有效时间。一定时间的数据有TTL
+ *
+ *
  *   3. 用户状态的处理
+ *        1）可以在用户上线的时候拉取数据，而且是用户的比较活跃的好友的状态。不停的去查询状态
+ *        2）可以在发送消息的时候更新数据
+ *        3）只有用户上线的时候，通知他的好友他上线了的状态。而不是不断的跟踪状态，否则会消耗很多资源
  */
 @RestController
 @Log4j2
