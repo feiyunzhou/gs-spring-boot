@@ -4,6 +4,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.datastax.driver.core.utils.UUIDs;
+import com.learner.feed.*;
 import com.learner.messager.*;
 import lombok.extern.log4j.Log4j2;
 import org.junit.Test;
@@ -17,6 +19,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,6 +41,13 @@ public class HelloControllerTest {
     InboxRepository inboxRepository;
     @Autowired
     InboxMessageRepository inboxMessageRepository;
+    @Autowired
+    TimelineRepository timelineRepository;
+
+    @Autowired
+    FollowerRepository followerRepository;
+    @Autowired
+    TweetRepository tweetRepository;
 
     @Test
     public void getHello() throws Exception {
@@ -96,5 +107,31 @@ public class HelloControllerTest {
     public void inboxQueryTest() throws Exception {
         List<InboxMessage> msgs = inboxMessageRepository.getInboxMessagesByToAndTimeGreaterThan("test1", UUID.fromString("040dd790-943e-11e9-af45-0fbd8af4f681"));
         msgs.forEach(log::info);
+    }
+
+    @Test
+    public void insertFollower() throws Exception {
+        Follower follower = new Follower();
+        follower.setUserName("test1");
+        follower.setFollower("test19");
+        follower.setSince(new Date());
+        followerRepository.save(follower);
+    }
+
+    @Test
+    public void queryFollowerTest() throws Exception {
+        followerRepository.findFollowersByUserName("test1").forEach(log::info);
+    }
+
+    @Test
+    public void timelineInsert() throws Exception {
+        Tweet tweet = Tweet.createTweet("test2", "hello world twitters");
+        Tweet res = tweetRepository.save(tweet);
+
+        TimelineRecord timelineRec = new TimelineRecord();
+        timelineRec.setTime(UUIDs.timeBased());
+        timelineRec.setUserName("test1");
+        timelineRec.setTweetId(tweet.getTweetId());
+        timelineRepository.save(timelineRec);
     }
 }
