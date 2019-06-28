@@ -13,6 +13,10 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -133,5 +137,16 @@ public class HelloControllerTest {
         timelineRec.setUserName("test1");
         timelineRec.setTweetId(tweet.getTweetId());
         timelineRepository.save(timelineRec);
+    }
+
+    @Test
+    public void pageTest() throws Exception {
+        PageRequest pageable = PageRequest.of(0, 20);
+        Slice<TimelineRecord> records = timelineRepository.findTimelineRecordsByUserNameAndTimeGreaterThan("test4", UUID.fromString("450b0000-d3be-11df-8080-808080808080"), pageable);
+        //Pageable next = records.nextPageable();
+        //records = timelineRepository.findTimelineRecordsByUserNameAndTimeGreaterThan("test4", UUID.fromString("450b0000-d3be-11df-8080-808080808080"), next);
+        //log.info(next);
+        //log.info(records.getSize());
+        records.stream().forEach(log::info);
     }
 }

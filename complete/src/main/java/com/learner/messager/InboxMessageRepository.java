@@ -1,6 +1,7 @@
 package com.learner.messager;
 
 import org.springframework.data.cassandra.repository.CassandraRepository;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
