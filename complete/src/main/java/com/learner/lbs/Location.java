@@ -13,4 +13,10 @@ public class Location {
     private double lng;
     private String userName;
     private Date createTime;
+
+    public Location(String locationId, double lat, double lng) {
+        this.locationId = locationId;
+        this.lat = lat;
+        this.lng = lng;
+    }
 }
