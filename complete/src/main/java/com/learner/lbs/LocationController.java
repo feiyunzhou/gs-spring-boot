@@ -83,21 +83,33 @@ public class LocationController {
         }
         return ResponseEntity.ok().build();
     }
-    @PostMapping("/trip-req")
+    @PostMapping("/trip")
     public ResponseEntity createTrip(@RequestBody Trip trip) {
         trip.setTripId(UUIDs.timeBased());
         trip.setStatus(0);
-        List<InterestingPoint> driversPoints = getNearbyDrivers(trip.getLat(), trip.getLng());
+        tripRepository.save(trip);
 
-        List<InterestingPoint> driverLocations = getNearbyDrivers(trip.getLat(), trip.getLng());
+
+        //找到符合条件的几个司机，然后把trip信息发送给对应的司机
+        List<InterestingPoint> driversLocations = getNearbyDrivers(trip.getLat(), trip.getLng());
+        for (InterestingPoint point : driversLocations) {
+            trip.setDriverUserName(point.getUserName());
+            sendTripRequestToDrivers(trip);
+        }
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("trip")
+    public ResponseEntity updateTrip(@RequestBody Trip trip) {
         return ResponseEntity.ok().build();
     }
 
     /**
      * 给司机发送请求，等待司机相应是否接受
-     * @param driverLocations
+     * @param trip
      */
-    private void sendTripRequestToDrivers(List<InterestingPoint> driverLocations) {
+    private void sendTripRequestToDrivers(Trip trip) {
 
     }
 

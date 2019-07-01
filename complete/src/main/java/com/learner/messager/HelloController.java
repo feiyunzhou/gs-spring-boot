@@ -39,6 +39,7 @@ import java.util.concurrent.ForkJoinPool;
  */
 @RestController
 @Log4j2
+@RequestMapping("/ms")
 public class HelloController {
     @Autowired
     private PersonRepository personRepository;
