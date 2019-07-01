@@ -40,7 +40,7 @@ import java.util.concurrent.ForkJoinPool;
 @RestController
 @Log4j2
 @RequestMapping("/ms")
-public class HelloController {
+public class MessageController {
     @Autowired
     private PersonRepository personRepository;
     private final Map deferredResultMap=new ConcurrentReferenceHashMap<>();

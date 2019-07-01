@@ -33,7 +33,7 @@ import java.util.UUID;
 @AutoConfigureMockMvc
 @TestPropertySource(locations="classpath:application.properties")
 @Log4j2
-public class HelloControllerTest {
+public class MessageControllerTest {
 
     @Autowired
     private MockMvc mvc;
