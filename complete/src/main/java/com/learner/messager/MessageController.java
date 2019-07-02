@@ -58,7 +58,7 @@ public class MessageController {
         if (deferredResultMap.containsKey(userName)) {
             deferredResultMap.remove(userName);
         }
-        DeferredResult deferredResult=new DeferredResult(10000L);
+        DeferredResult deferredResult=new DeferredResult(20000L);
         deferredResultMap.put(userName, deferredResult);
         log.info(deferredResultMap);
         deferredResult.onCompletion(()->{

@@ -143,7 +143,7 @@ public class LocationController {
 
     @PutMapping("/trip")
     public ResponseEntity updateTrip(@RequestBody Trip trip) {
-        Trip tripInfo = tripRepository.findById(trip.getTripId()).get();
+        Trip tripInfo = tripRepository.findTripByTripId(trip.getTripId());
         if (tripInfo != null) {
             //在设置driver的时候需要用一个分布式锁来锁定，或者有其他方式来实现transaction，防止出现不一致性
             if (!Strings.isNullOrEmpty(tripInfo.getDriverUserName())) {

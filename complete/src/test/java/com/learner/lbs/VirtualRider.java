@@ -10,7 +10,7 @@ import java.util.UUID;
 @Data
 @Log4j2
 @ToString
-public class VitrualRider {
+public class VirtualRider {
     private String baseUrl = "http://localhost:8080";
     private String userName;
     private RestTemplate restTemplate;
@@ -18,7 +18,7 @@ public class VitrualRider {
     private double lng;
     private Trip mytrip;
 
-    public VitrualRider(String userName, double lat, double lng) {
+    public VirtualRider(String userName, double lat, double lng) {
         this.userName = userName;
         this.lat = lat;
         this.lng = lng;
@@ -43,11 +43,12 @@ public class VitrualRider {
      * 第二部：查询是否有司机抢单
      */
     //开始查询附近的司机
-    public void queryTrip() {
+    public Trip queryTrip() {
         String url = String.format("%s/lbs/trip?uuid=%s", baseUrl, mytrip.getTripId().toString());
 
         Trip trip = restTemplate.getForObject(url, Trip.class);
         log.info("trip info: " + trip);
+        return trip;
     }
 
 }

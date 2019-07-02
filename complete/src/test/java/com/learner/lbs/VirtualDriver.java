@@ -46,7 +46,7 @@ public class VirtualDriver {
                     double tempLat = lat + randomLat;
                     double tmpLng = lng + randomlng;
                     String url = String.format("%s/lbs/driver/location", baseUrl);
-                    log.info("ready to post data:" + url);
+                    //log.info("ready to post data:" + url);
                     InterestingPoint point = new InterestingPoint();
                     point.setUserName(name);
                     point.setLat(tempLat);
@@ -72,7 +72,29 @@ public class VirtualDriver {
         }).start();
     }
     private void handleMsg(InboxMessage msg) {
-        log.info("handle msg:" + msg);
+        log.info("***************Start handle MSG********************");
+        log.info("*handle msg:" + msg);
+        log.info("****************************************************");
+
+        String tripJson = msg.getMsg();
+
+        Gson gson = new Gson();
+        Trip trip = gson.fromJson(tripJson, Trip.class);
+
+        log.debug("trip info: {}", trip);
+
+        String url = String.format("%s/lbs/trip",baseUrl);
+        log.info(url);
+        long sleepTime = (long) (Math.random() * 10000);
+
+        trip.setDriverUserName(name);
+        try {
+            TimeUnit.MICROSECONDS.sleep(sleepTime);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        restTemplate.put(url, trip);
+
     }
     private void startMsgChannel() throws Exception {
         final String userName = name;
