@@ -1,5 +1,7 @@
 package com.learner.lbs;
 
+import com.datastax.driver.core.LocalDate;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.ToString;
 import org.springframework.data.cassandra.core.mapping.Column;
@@ -28,5 +30,6 @@ public class Trip {
     @Column("status")
     private int status;
     @Column("create_time")
-    private Date createTime;
+    @JsonIgnore
+    private LocalDate createTime;
 }

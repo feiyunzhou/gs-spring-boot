@@ -25,15 +25,17 @@ public class InterestingPoint {
     private double lat;
     @Column
     private double lng;
-
+/*
     public InterestingPoint(String userName, double lat, double lng) {
         this.userName = userName;
         this.lat = lat;
         this.lng = lng;
-    }
+    }*/
     public static InterestingPoint createInterestingPoint(String userName, double lat, double lng) {
-        InterestingPoint record = new InterestingPoint(userName, lat, lng);
+        InterestingPoint record = new InterestingPoint();
         record.setUserName(userName);
+        record.setLat(lat);
+        record.setLng(lng);
         record.setTime(UUIDs.timeBased());
         record.setLat(lat);
         record.setLng(lng);

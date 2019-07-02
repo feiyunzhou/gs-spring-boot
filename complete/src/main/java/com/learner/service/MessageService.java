@@ -1,4 +1,4 @@
-package com.learner.common;
+package com.learner.service;
 
 import com.google.gson.Gson;
 import com.learner.messager.InboxMessage;
@@ -16,7 +16,7 @@ public class MessageService {
         Gson gson = new Gson();
         String body = gson.toJson(messageData);
 
-        String url = String.format("%s/ms/msg");
+        String url = String.format("%s/ms/msg", baseUrl);
         InboxMessage message = new InboxMessage();
         message.setFrom(fromUser);
         message.setTo(toUser);

@@ -1,20 +1,20 @@
 package com.learner.lbs;
 
 import ch.hsr.geohash.GeoHash;
+import com.datastax.driver.core.LocalDate;
 import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Range;
 import com.google.common.util.concurrent.RateLimiter;
-import com.google.gson.Gson;
-import com.learner.common.MessageService;
+import com.learner.service.MessageService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,6 +31,11 @@ import java.util.stream.Collectors;
  *       4）司机收到消息后，确认是否需要接单。如果接单，需要设置trip中的driver的名字和状态。
  *       5）rider不断pull单子的状态, 一旦查询到有司机接单，则显示司机的信息。
  *       6）司机到达目的地后，行程开始
+ *   5. 需要问自己的问题：
+ *      1）有多少司机和用户
+ *      2）司机更新位置的请求量，消耗的内存，消耗的带宽量
+ *      3）在查询附近的司机的时候，使用什么算法： SQL和geohash或是quadTree。 quadtree的方式减少附件的兴趣点的数量
+ *
  *
  *
  *
@@ -63,51 +68,77 @@ public class LocationController {
 
     @PostMapping("/driver/location")
     public ResponseEntity driverLocationReport(@RequestBody InterestingPoint interestingPoint, String userName) {
-        rateLimiters.putIfAbsent(userName, RateLimiter.create(0.1));
-
-        if (!rateLimiters.get(userName).tryAcquire()) {
+        /**
+         * 司机端只能每隔10秒更新下他的位置，如果更新频率太高，将要拒绝更新。LB需要采用session stick的方式
+         */
+        rateLimiters.putIfAbsent(interestingPoint.getUserName(), RateLimiter.create(0.1));
+        if (!rateLimiters.get(interestingPoint.getUserName()).tryAcquire()) {
             log.info("rate limited");
             return ResponseEntity.badRequest().body("rate limit, permit 1 request per 10 seconds");
         }
 
+        if (!isLatLngValid(interestingPoint.getLat(), interestingPoint.getLng())) {
+            log.info("invalid lat or lng");
+            return ResponseEntity.badRequest().body("无效经纬度");
+        }
+
         //获取最近一次的location
         InterestingPoint point = interestingPointRepository.findFirstByUserName(interestingPoint.getUserName());
-        GeoHash oldGeoHash = GeoHash.withCharacterPrecision(point.getLat(), point.getLng(), PRECISION_OF_NUM_OF_CHARACTERS);
-        GeoHash newGeoHash = GeoHash.withCharacterPrecision(interestingPoint.getLat(), interestingPoint.getLng(), PRECISION_OF_NUM_OF_CHARACTERS);
-        String driverName = interestingPoint.getUserName();
-        String oldGeoHashBase32 = oldGeoHash.toBase32();
-        String newGeoHashBase32 = newGeoHash.toBase32();
-        if (!oldGeoHashBase32.equals(newGeoHashBase32)) {
-
-            String oldGeohash6 = prefixOfString(oldGeoHashBase32, 6);
-            String oldGeohash5 = prefixOfString(oldGeoHashBase32, 5);
-            redisTemplate.opsForSet().remove(oldGeohash6, driverName);
-            redisTemplate.opsForSet().remove(oldGeohash5, driverName);
-
+        if (point != null) {
+            GeoHash oldGeoHash = GeoHash.withCharacterPrecision(point.getLat(), point.getLng(), PRECISION_OF_NUM_OF_CHARACTERS);
+            GeoHash newGeoHash = GeoHash.withCharacterPrecision(interestingPoint.getLat(), interestingPoint.getLng(), PRECISION_OF_NUM_OF_CHARACTERS);
+            String driverName = interestingPoint.getUserName();
+            String oldGeoHashBase32 = oldGeoHash.toBase32();
+            String newGeoHashBase32 = newGeoHash.toBase32();
+            /**
+             * 只有当新的geohash和老geohash不同的时候，我们才更新Redis中的geohash索引
+             *  1） 我们需要删除老的位置，将司机的位置放入到一个新的geohash下
+             *  2） 我们需要计算精度为5，6的geohash，并且分别保存，这样我们在做查询的时候如果精度为6的没有查询到，可以查询精度为5的范围。
+             *
+             */
+            if (!oldGeoHashBase32.equals(newGeoHashBase32)) {
+                String oldGeohash6 = prefixOfString(oldGeoHashBase32, 6);
+                String oldGeohash5 = prefixOfString(oldGeoHashBase32, 5);
+                redisTemplate.opsForSet().remove(oldGeohash6, driverName);
+                redisTemplate.opsForSet().remove(oldGeohash5, driverName);
+                String newGeohash6 = prefixOfString(newGeoHashBase32, 6);
+                String newGeohash5 = prefixOfString(newGeoHashBase32, 5);
+                redisTemplate.opsForSet().add(newGeohash6, driverName);
+                redisTemplate.opsForSet().add(newGeohash5, driverName);
+            } else {
+                log.info("the new postion has the same geohash comparing with the recent location");
+            }
+        } else {
+            GeoHash newGeoHash = GeoHash.withCharacterPrecision(interestingPoint.getLat(), interestingPoint.getLng(), PRECISION_OF_NUM_OF_CHARACTERS);
+            String newGeoHashBase32 = newGeoHash.toBase32();
             String newGeohash6 = prefixOfString(newGeoHashBase32, 6);
             String newGeohash5 = prefixOfString(newGeoHashBase32, 5);
-            redisTemplate.opsForSet().add(newGeohash6, driverName);
-            redisTemplate.opsForSet().add(newGeohash5, driverName);
-        } else {
-            log.info("the new postion has the same geohash comparing with the recent location");
+            redisTemplate.opsForSet().add(newGeohash6, interestingPoint.getUserName());
+            redisTemplate.opsForSet().add(newGeohash5, interestingPoint.getUserName());
         }
+        /**
+         * 保存当前司机的位置信息
+         * @TODO  怎么识别位置是假的？例如可以增加水平高度信息，辨别经度的真假性
+         */
+        interestingPoint.setTime(UUIDs.timeBased());
+        interestingPointRepository.save(interestingPoint);
         return ResponseEntity.ok().build();
     }
     @PostMapping("/trip")
     public ResponseEntity createTrip(@RequestBody Trip trip) {
         trip.setTripId(UUIDs.timeBased());
         trip.setStatus(0);
+        trip.setCreateTime(LocalDate.fromMillisSinceEpoch(new Date().getTime()));
         tripRepository.save(trip);
-
 
         //找到符合条件的几个司机，然后把trip信息发送给对应的司机
         List<InterestingPoint> driversLocations = getNearbyDrivers(trip.getLat(), trip.getLng());
         for (InterestingPoint point : driversLocations) {
             //trip.setDriverUserName(point.getUserName());
-            sendTripRequestToDrivers(trip);
+            sendTripRequestToDrivers(point, trip);
         }
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok().body(trip);
     }
 
     @PutMapping("/trip")
@@ -131,21 +162,18 @@ public class LocationController {
 
     @GetMapping("/trip")
     public ResponseEntity getTrip(String uuid) {
-        Trip tripInfo = tripRepository.findById(UUID.fromString(uuid)).get();
-        if (tripInfo != null && !Strings.isNullOrEmpty(tripInfo.getDriverUserName())) {
-            log.info("found trip accpted");
-            return ResponseEntity.ok().body(tripInfo);
-        } else {
-            log.warn("trip is not accepted by the driver");
+        Trip tripInfo = tripRepository.findTripByTripId(UUID.fromString(uuid));
+        if (tripInfo == null) {
             return ResponseEntity.notFound().build();
         }
+        return ResponseEntity.ok().body(tripInfo);
     }
     /**
      * 给司机发送请求，等待司机相应是否接受
      * @param trip
      */
-    private void sendTripRequestToDrivers(Trip trip) {
-        messageService.pushMessage(PUSH_MESSAGE_USERNAME, trip.getDriverUserName(), trip);
+    private void sendTripRequestToDrivers(InterestingPoint driverLocation, Trip trip) {
+        messageService.pushMessage(PUSH_MESSAGE_USERNAME, driverLocation.getUserName(), trip);
     }
 
     public List<InterestingPoint> getNearbyDrivers(double lat, double lng) {
@@ -172,6 +200,11 @@ public class LocationController {
         return res.stream().filter(point -> (System.currentTimeMillis() - point.getTime().timestamp()) < 3600 * 1000 ).limit(3).collect(Collectors.toList());
     }
 
+    private Boolean isLatLngValid(double lat, double lng) {
+        Range<Double> latRange = Range.closed(-90.0d, 90.0d);
+        Range<Double> lngRange = Range.closed(-180d, 180d);
+        return latRange.contains(lat) && lngRange.contains(lng);
+    }
     private String prefixOfString(String str, int length) {
         return str.substring(0, length - 1);
     }

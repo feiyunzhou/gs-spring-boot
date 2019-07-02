@@ -9,4 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface TripRepository extends CassandraRepository<Trip, UUID> {
+    public Trip findTripByTripId(UUID uuid);
 }
