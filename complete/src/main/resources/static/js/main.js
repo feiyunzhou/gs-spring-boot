@@ -1,15 +1,69 @@
 $(document).ready(function () {
     console.log("hello world jquery");
 
-    $("#search-form").submit(function (event) {
+    var currentLat = 39.941033;
+    var currentLng = 116.425099;
+    var currentTripId;
+    // 百度地图API功能
+    var map = new BMap.Map("allmap");    // 创建Map实例
+    map.centerAndZoom(new BMap.Point( currentLng,currentLat), 18);  // 初始化地图,设置中心点坐标和地图级别
+    //添加地图类型控件
+    map.addControl(new BMap.MapTypeControl({
+        mapTypes: [
+            BMAP_NORMAL_MAP,
+            BMAP_HYBRID_MAP
+        ]
+    }));
+    map.setCurrentCity("北京");          // 设置地图显示的城市 此项是必须设置的
+    map.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放
+    var point = new BMap.Point(currentLng,currentLat);
+    var marker = new BMap.Marker(point);// 创建标注
+    map.addOverlay(marker);
+    marker.enableDragging();
+    marker.addEventListener("dragend", function(e){
+        console.log("当前位置：" + e.point.lng + ", " + e.point.lat);
+        currentLat = e.point.lat;
+        currentLng = e.point.lng;
+        $('#latlnglable').html(currentLat + ',' + currentLng);
+    })
+    $('#latlnglable').html(currentLat + ',' + currentLng);
 
-        //stop submit the form, we will post it manually.
-        event.preventDefault();
-
-        //fire_ajax_submit();
-
+    $("#btnRideRequest").click(function(){
+        var trip = {
+            riderUserName:"rider1",
+            lat: currentLat,
+            lng: currentLng
+        }
+            $.ajax({
+            url: '/lbs/trip',
+            type: 'post',
+            dataType: 'json',
+            contentType: 'application/json',
+            success: function (data) {
+                console.log(data);
+                //setInterval(fetchdata(data.tripId),5000);
+                currentTripId = data.tripId;
+                fetchTripInfo();
+            },
+            data: JSON.stringify(trip)
+        });
     });
 
+    function fetchTripInfo(){
+        $.ajax({
+            url: '/lbs/trip?uuid=' + currentTripId,
+            type: 'get',
+            success: function(response){
+                // Perform operation on the return value
+                console.log(response);
+            },
+            complete:function(data){
+                if (data.driverUserName == null) {
+                    setTimeout(fetchTripInfo, 5000);
+                }
+            }
+        });
+    }
 
 });
 
