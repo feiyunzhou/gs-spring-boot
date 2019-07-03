@@ -124,6 +124,11 @@ public class LocationController {
         interestingPointRepository.save(interestingPoint);
         return ResponseEntity.ok().build();
     }
+    @GetMapping("/driver-locations")
+    public List<InterestingPoint> getDriverLocations(String driverUserName, String uuid) {
+        return interestingPointRepository.getInterestingPointsByUserNameAndTimeGreaterThan(driverUserName, UUID.fromString(uuid));
+    }
+
     @PostMapping("/trip")
     public ResponseEntity createTrip(@RequestBody Trip trip) {
         trip.setTripId(UUIDs.timeBased());
