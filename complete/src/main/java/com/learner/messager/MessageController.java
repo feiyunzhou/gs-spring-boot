@@ -1,6 +1,7 @@
 package com.learner.messager;
 
 import com.datastax.driver.core.utils.UUIDs;
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.learner.Person;
@@ -52,8 +53,11 @@ public class MessageController {
         return "Greetings from Spring Boot!";
     }
     @GetMapping("/connect")
-    public DeferredResult longPolling(HttpServletRequest req){
+    public DeferredResult longPolling(HttpServletRequest req) throws Exception {
         String userName = req.getParameter("userName");
+        if (Strings.isNullOrEmpty(userName)) {
+            throw new Exception("invalid username");
+        }
         log.info(String.format("user:%s started a long polling", userName));
         if (deferredResultMap.containsKey(userName)) {
             deferredResultMap.remove(userName);

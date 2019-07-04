@@ -2,6 +2,7 @@ package com.learner.lbs;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.learner.service.MessageService;
 import lombok.extern.log4j.Log4j2;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,6 +15,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(SpringRunner.class)
@@ -24,6 +26,12 @@ import java.util.concurrent.TimeUnit;
 public class DriverTest {
     @Autowired
     private RestTemplate template;
+    @Autowired
+    private MessageService messageService;
+    @Autowired
+    private TripRepository tripRepository;
+
+
     private String baseURL = "http://localhost:8080";
     private double[][] startLoc = {{39.953511, 116.381966},
                                    {39.954166, 116.376183},
@@ -78,5 +86,10 @@ public class DriverTest {
             if (!Strings.isNullOrEmpty(currentTrip.getDriverUserName())) break;
             TimeUnit.SECONDS.sleep(10);
         }
+    }
+    @Test
+    public void pushMessageToDriver() throws Exception {
+        Trip trip = tripRepository.findTripByTripId(UUID.fromString("418aff20-9d9f-11e9-a327-0563ea7fcc51"));
+        messageService.pushMessage("Admin", "test1", trip);
     }
 }
