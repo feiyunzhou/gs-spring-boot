@@ -157,7 +157,7 @@ public class LocationController {
             } else {
                 log.info("driver name is null, we can set the trip");
                 tripRepository.save(trip);
-                return ResponseEntity.ok().build();
+                return ResponseEntity.ok().body(tripInfo);
             }
         } else {
             log.error("can't find trip info by tripID");

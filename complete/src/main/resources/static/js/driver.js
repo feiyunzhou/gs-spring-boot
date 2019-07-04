@@ -34,6 +34,7 @@ $(document).ready(function () {
     var lastMsgUuid;
     var lastMsg;
     var tripRequest;
+    var ridermarker;
     fetchMessages();
     connectMessageChannel();
 
@@ -75,21 +76,29 @@ $(document).ready(function () {
                 $('#lastMsg').html(lastMsg);
 
                 if (tripRequest != undefined && tripRequest.tripId != null && tripRequest.riderUserName != null && tripRequest.driverUserName == null) {
-                    var riderpoint = new BMap.Point(tripRequest.lng, tripRequest.lat);
-                    var ridermarker = new BMap.Marker(riderpoint);// 创建标注
-                    map.addOverlay(ridermarker);
-                    /*var r=confirm("Take the trip：" + tripRequest.riderUserName + "?");//window.confirm("Press a button");
-                    if (r==true)
-                    {
-                        console.log("You pressed OK!");
-                        tripRequest.driverUserName = userName;
-                        grapTripRequest();
-                    } else
-                    {
-                        console.log("You pressed Cancel!");
-                    }*/
 
-                    $('#myModal').modal('show');
+                    $.ajax({
+                        url:'/lbs/trip?uuid=' + tripRequest.tripId,
+                        type:'get',
+                        dataType: 'json',
+                        contentType: 'application/json',
+                        success: function (tripInfo) {
+                            if(tripInfo != null && tripInfo.driverUserName == null) {
+                                var riderpoint = new BMap.Point(tripRequest.lng, tripRequest.lat);
+                                ridermarker = new BMap.Marker(riderpoint);// 创建标注
+                                map.addOverlay(ridermarker);
+                                ridermarker.setAnimation(BMAP_ANIMATION_BOUNCE);
+                                var label = new BMap.Label(tripInfo.riderUserName + "：接我!",{offset:new BMap.Size(20,-10)});
+                                ridermarker.setLabel(label);
+                                $('#myModal').modal('show');
+                            }
+                        },
+                        error: function (err) {
+
+                        }
+                    });
+
+
 
                 }
                 console.log("last UUID is:" + lastMsgUuid);
@@ -112,9 +121,13 @@ $(document).ready(function () {
             contentType: 'application/json',
             success: function (data) {
                 console.log(data);
+                $('#myModal').modal('hide');
             },
             error: function (data) {
                 //connectMessageChannel();
+                alert("The trip is accpeted by the other driver!");
+                $('#myModal').modal('hide');
+                map.removeOverlay(ridermarker);
             },
             data: JSON.stringify(tripRequest)
         });
@@ -127,6 +140,10 @@ $(document).ready(function () {
         grapTripRequest();
         //$btn.button('Accept it')
     })
+
+    $('#myModal').on('hidden.bs.modal', function () {
+        map.removeOverlay(ridermarker);
+    });
 });
 
 
