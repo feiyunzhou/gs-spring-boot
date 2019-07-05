@@ -1,11 +1,16 @@
 $(document).ready(function () {
     console.log("hello world jquery");
-    var currentLat = driverLoc.lat;
-    var currentLng = driverLoc.lng;
+    var map = new BMap.Map("allmap");    // 创建Map实例
+    var point = new BMap.Point(116.404, 39.915);
+    map.centerAndZoom(point, 15);
+    var start;
+    var end;
+    getRandomLatLng();
+    var currentLat = start.lat;
+    var currentLng = start.lng;
     var currentTripId;
     // 百度地图API功能
-    var map = new BMap.Map("allmap");    // 创建Map实例
-    map.centerAndZoom(new BMap.Point( currentLng,currentLat), 12);  // 初始化地图,设置中心点坐标和地图级别
+    //map.centerAndZoom(new BMap.Point( currentLng,currentLat), 12);  // 初始化地图,设置中心点坐标和地图级别
     //添加地图类型控件
     map.addControl(new BMap.MapTypeControl({
         mapTypes: [
@@ -130,6 +135,90 @@ $(document).ready(function () {
                 map.removeOverlay(ridermarker);
             },
             data: JSON.stringify(tripRequest)
+        });
+    }
+
+    var duration;
+    var distance;
+
+    function getRandomLatLng() {
+        var bounds = map.getBounds();
+        var sw = bounds.getSouthWest();
+        var ne = bounds.getNorthEast();
+        var lngSpan = Math.abs(sw.lng - ne.lng);
+        var latSpan = Math.abs(ne.lat - sw.lat);
+        start = new BMap.Point(sw.lng + lngSpan * (Math.random() * 0.7), ne.lat - latSpan * (Math.random() * 0.7));
+        end =  new BMap.Point(sw.lng + lngSpan * (Math.random() * 0.7), ne.lat - latSpan * (Math.random() * 0.7));
+    }
+    routeLine();
+    var arrPois =[];
+    var i = 0;
+    function routeLine(){
+        var lushu;
+        // 实例化一个驾车导航用来生成路线
+        var drv = new BMap.DrivingRoute('北京', {
+            onSearchComplete: function(res) {
+                if (drv.getStatus() == BMAP_STATUS_SUCCESS) {
+                    var plan = res.getPlan(0);
+                    for(var j=0;j<plan.getNumRoutes();j++){
+                        var route = plan.getRoute(j);
+                        console.log(plan.getDistance(false));
+                        console.log(plan.getDuration(false));
+                        distance = plan.getDistance(false);
+                        duration = plan.getDuration(false)
+                        arrPois= arrPois.concat(route.getPath());
+                    }
+                    map.addOverlay(new BMap.Polyline(arrPois, {strokeColor: '#111'}));
+                    map.setViewport(arrPois);
+                    console.log(arrPois.length);
+
+                    lushu = new BMapLib.LuShu(map,arrPois,{
+                        defaultContent:"",//"从天安门到百度大厦"
+                        autoView:true,//是否开启自动视野调整，如果开启那么路书在运动过程中会根据视野自动调整
+                        icon  : new BMap.Icon('http://lbsyun.baidu.com/jsdemo/img/car.png', new BMap.Size(52,26),{anchor : new BMap.Size(27, 13)}),
+                        speed: distance/duration,
+                        enableRotation:true,//是否设置marker随着道路的走向进行旋转
+                        landmarkPois: [
+                            {lng:116.314782,lat:39.913508,html:'加油站',pauseTime:2},
+                            {lng:116.315391,lat:39.964429,html:'高速公路收费<div><img src="http://map.baidu.com/img/logo-map.gif"/></div>',pauseTime:3},
+                            {lng:116.381476,lat:39.974073,html:'肯德基早餐<div><img src="http://ishouji.baidu.com/resource/images/map/show_pic04.gif"/></div>',pauseTime:2}
+                        ]});
+                    lushu.start();
+                    setInterval(reportLoc, 1000 * (duration/arrPois.length));
+                }
+            }
+        });
+
+        drv.search(start, end);
+    }
+
+    /**
+     *  sending the position to the server
+     */
+    var status = true;
+    //reportLoc();
+
+    function reportLoc() {
+        if (i >= arrPois.length) return;
+        var point = {
+            userName: userName,
+            lat: arrPois[i].lat,
+            lng: arrPois[i].lng
+        }
+        i++;
+        $.ajax({
+            url: '/lbs/driver/location',
+            type: 'post',
+            async:true,
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(point),
+            success: function (returnValue) {
+                if (status) {
+                    status = false;
+                   // window.setInterval("reportLoc()", 15000);
+                }
+            }
         });
     }
 

@@ -64,12 +64,12 @@ public class WelcomeController {
     }
 
     // /hello?name=kotlin
-    @GetMapping("/map")
+    @GetMapping("/rider")
     public String baidumap(Model model) {
 
         //model.addAttribute("message", name);
 
-        return "welcome"; //view
+        return "rider"; //view
     }
     @GetMapping("/driver")
     public String driverMap(HttpServletRequest request, Model model) {

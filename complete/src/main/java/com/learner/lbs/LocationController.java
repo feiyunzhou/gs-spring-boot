@@ -82,6 +82,7 @@ public class LocationController {
             return ResponseEntity.badRequest().body("无效经纬度");
         }
 
+        log.info("reported location: {}", interestingPoint);
         //获取最近一次的location
         InterestingPoint point = interestingPointRepository.findFirstByUserName(interestingPoint.getUserName());
         if (point != null) {
