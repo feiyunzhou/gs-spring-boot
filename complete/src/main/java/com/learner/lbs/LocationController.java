@@ -126,10 +126,21 @@ public class LocationController {
         return ResponseEntity.ok().build();
     }
     @GetMapping("/driver-locations")
-    public List<InterestingPoint> getDriverLocations(String driverUserName, String uuid) {
+    public List<InterestingPoint> getDriverLocations(String driverUserName, String uuid,  Integer page, Integer pageSize) {
+        if (pageSize == null || pageSize == 0) {
+            pageSize = 20;
+        }
+
+        if (page == null) {
+            page = 0;
+        }
         return interestingPointRepository.getInterestingPointsByUserNameAndTimeGreaterThan(driverUserName, UUID.fromString(uuid));
     }
 
+    @GetMapping("/driver/location")
+    public InterestingPoint getDriverLastLocation(String userName) {
+        return interestingPointRepository.findFirstByUserName(userName);
+    }
     @PostMapping("/trip")
     public ResponseEntity createTrip(@RequestBody Trip trip) {
         trip.setTripId(UUIDs.timeBased());
