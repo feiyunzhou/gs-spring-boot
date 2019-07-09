@@ -69,7 +69,7 @@ public class LocationController {
     @PostMapping("/driver/location")
     public ResponseEntity driverLocationReport(@RequestBody InterestingPoint interestingPoint, String userName) {
         /**
-         * 司机端只能每隔10秒更新下他的位置，如果更新频率太高，将要拒绝更新。LB需要采用session stick的方式
+         * 司机端只能每隔10秒更新下他的位置，如果更新频率太高，将要拒绝更新。LB需要采用session stick的方式将用户请求定位到某个区域的机器上？
          */
         rateLimiters.putIfAbsent(interestingPoint.getUserName(), RateLimiter.create(0.1));
         if (!rateLimiters.get(interestingPoint.getUserName()).tryAcquire()) {
