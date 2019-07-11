@@ -60,6 +60,8 @@ app.controller("chatCtrl",['$scope','randomColor','userService',function($scope,
     $scope.color=randomColor.newColor();//当前用户头像颜色
     $scope.login=function(){   //登录进入聊天室
         //socket.emit("addUser",{nickname:$scope.nickname,color:$scope.color});
+        $scope.userExisted=false;
+        $scope.hasLogined=true;
     }
     $scope.scrollToBottom=function(){
         messageWrapper.scrollTop(messageWrapper[0].scrollHeight);
