@@ -1,7 +1,7 @@
 
 var app=angular.module("chatRoom",[]);
 
-app.factory('socket', function($rootScope) {
+/*app.factory('socket', function($rootScope) {
     var socket = io(); //默认连接部署网站的服务器
     return {
         on: function(eventName, callback) {
@@ -23,7 +23,7 @@ app.factory('socket', function($rootScope) {
             });
         }
     };
-});
+});*/
 
 app.factory('randomColor', function($rootScope) {
     return {
@@ -49,7 +49,7 @@ app.factory('userService', function($rootScope) {
     };
 });
 
-app.controller("chatCtrl",['$scope','socket','randomColor','userService',function($scope,socket,randomColor,userService){
+app.controller("chatCtrl",['$scope','randomColor','userService',function($scope,randomColor,userService){
     var messageWrapper= $('.message-wrapper');
     $scope.hasLogined=false;
     $scope.receiver="";//默认是群聊
@@ -59,7 +59,7 @@ app.controller("chatCtrl",['$scope','socket','randomColor','userService',functio
     $scope.users=[];//
     $scope.color=randomColor.newColor();//当前用户头像颜色
     $scope.login=function(){   //登录进入聊天室
-        socket.emit("addUser",{nickname:$scope.nickname,color:$scope.color});
+        //socket.emit("addUser",{nickname:$scope.nickname,color:$scope.color});
     }
     $scope.scrollToBottom=function(){
         messageWrapper.scrollTop(messageWrapper[0].scrollHeight);
@@ -97,6 +97,7 @@ app.controller("chatCtrl",['$scope','socket','randomColor','userService',functio
         }
     }
 
+    /*
     //收到登录结果
     socket.on('userAddingResult',function(data){
         if(data.result){
@@ -154,7 +155,7 @@ app.controller("chatCtrl",['$scope','socket','randomColor','userService',functio
         }
     });
 
-
+*/
 
 }]);
 

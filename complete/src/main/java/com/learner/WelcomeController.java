@@ -82,4 +82,26 @@ public class WelcomeController {
         return "driver"; //view
     }
 
+    @GetMapping("/index")
+    public String indexpage(Model model) {
+
+        //model.addAttribute("message", name);
+
+        return "index"; //view
+    }
+
+    @GetMapping("/user.html")
+    public String userperage(Model model) {
+
+        //model.addAttribute("message", name);
+
+        return "user"; //view
+    }
+    @GetMapping("/message.html")
+    public String messagepage(Model model) {
+
+        //model.addAttribute("message", name);
+
+        return "message"; //view
+    }
 }
