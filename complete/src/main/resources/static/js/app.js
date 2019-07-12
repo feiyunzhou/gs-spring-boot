@@ -25,6 +25,47 @@ var app=angular.module("chatRoom",[]);
     };
 });*/
 
+app.service('messageService', function ($rootScope, $http) {
+    var self = this;
+    var nickname;
+    this.startConnect = function (userName) {
+        nickname = userName;
+        $http({
+            url: "/ms/connect?userName=" + userName,           //请求的url路径
+            method: 'GET'
+        }).success(function (response, status, header, config, statusText) {
+            console.log(response);
+            if (response.indexOf('timing') > -1) {
+                console.log("connection timing out");
+            } else {
+                //处理消息
+                console.log("notified!");
+                self.onReceiveMessage();
+            }
+            self.startConnect(userName);
+
+        }).error(function (data, header, config, status) {
+            //错误处理
+            console.log(data);
+            //self.startConnect(userName);
+        });
+    }
+
+    this.onReceiveMessage = function () {
+        console.log("nickname:" + nickname);
+        $http({
+            url: "/ms/msg?userName=" + nickname,           //请求的url路径
+            method: 'GET'
+        }).success(function (data, status, header, config, statusText) {
+            console.log(data);
+
+
+        }).error(function (data, header, config, status) {
+            console.log(data);
+        });
+    }
+});
+
 app.factory('randomColor', function($rootScope) {
     return {
         newColor: function() {
@@ -49,7 +90,7 @@ app.factory('userService', function($rootScope) {
     };
 });
 
-app.controller("chatCtrl",['$scope','randomColor','userService',function($scope,randomColor,userService){
+app.controller("chatCtrl",['$scope','$http', 'randomColor','userService', 'messageService',function($scope,$http, randomColor,userService, messageService){
     var messageWrapper= $('.message-wrapper');
     $scope.hasLogined=false;
     $scope.receiver="";//默认是群聊
@@ -62,7 +103,28 @@ app.controller("chatCtrl",['$scope','randomColor','userService',function($scope,
         //socket.emit("addUser",{nickname:$scope.nickname,color:$scope.color});
         $scope.userExisted=false;
         $scope.hasLogined=true;
+
+        //get online users;
+        $http({
+            url:"/ms/online-users",           //请求的url路径
+            method:'GET'
+        }).success(function(response, status, header, config, statusText){
+            console.log(response);
+            if (response != null) {
+                for(var i=0;i<response.length;i++){
+                    var u = {};
+                    u.nickname = response[i];
+                    $scope.users.push(u);
+                }
+            }
+
+        }).error(function(data,header,config,status){
+            //错误处理
+            console.error(data);
+        });
+        messageService.startConnect($scope.nickname);
     }
+
     $scope.scrollToBottom=function(){
         messageWrapper.scrollTop(messageWrapper[0].scrollHeight);
     }

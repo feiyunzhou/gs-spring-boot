@@ -20,6 +20,8 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 /**
  *   messenger实现记录
@@ -62,7 +64,7 @@ public class MessageController {
         if (deferredResultMap.containsKey(userName)) {
             deferredResultMap.remove(userName);
         }
-        DeferredResult deferredResult=new DeferredResult(20000L);
+        DeferredResult deferredResult=new DeferredResult(10000L);
         deferredResultMap.put(userName, deferredResult);
         log.info(deferredResultMap);
         deferredResult.onCompletion(()->{
@@ -72,6 +74,8 @@ public class MessageController {
         deferredResult.onTimeout(() -> {
             deferredResultMap.remove(userName);
             log.error("timeout issues");
+            Gson gson = new Gson();
+            deferredResult.setErrorResult(gson.toJson("timing"));
         });
 
         deferredResult.onError(error -> {
@@ -106,6 +110,14 @@ public class MessageController {
             inboxes = inboxMessageRepository.getInboxMessagesByToAndTimeGreaterThan(userName, UUIDs.startOf(sdf.parse("20120503").getTime()));
         }
         return inboxes;
+    }
+
+    @GetMapping("/online-users")
+    public List<String> fetchOnlineUsers(HttpServletRequest req) {
+        if(deferredResultMap.keySet() != null) {
+            return Lists.newArrayList(deferredResultMap.keySet());
+        }
+        return Lists.newArrayList();
     }
     @ExceptionHandler
     public void exceptionHandler(HttpServletRequest req, Exception ex) {
