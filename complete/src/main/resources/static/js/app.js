@@ -51,15 +51,21 @@ app.service('messageService', function ($rootScope, $http) {
         });
     }
 
-    this.onReceiveMessage = function () {
+    this.onReceiveMessage = function (callback) {
         console.log("nickname:" + nickname);
         $http({
             url: "/ms/msg?userName=" + nickname,           //请求的url路径
             method: 'GET'
         }).success(function (data, status, header, config, statusText) {
             console.log(data);
-
-
+            if (data.length > 0) {
+                var args = data;
+                $rootScope.$apply(function() {
+                if(callback) {
+                    callback.apply(args);
+                }
+            });
+            }
         }).error(function (data, header, config, status) {
             console.log(data);
         });
