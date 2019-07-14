@@ -8,6 +8,6 @@
     <!-- 普通消息 -->
     <div class="normal-message" ng-class="{others:self!==info.from,self:self===info.from}" ng-switch-when="normal">
         <div class="name-wrapper"><span>{{info.from}} @ </span><span>{{time |  date: 'HH:mm:ss' }}</span></div>
-        <div class="content-wrapper"><span class="content">{{info.text}}</span><span class="avatar"></span></div>
+        <div class="content-wrapper"><span class="content">{{info.msg}}</span><span class="avatar"></span></div>
     </div>
 </div>

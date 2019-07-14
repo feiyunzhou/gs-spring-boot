@@ -28,7 +28,7 @@ var app=angular.module("chatRoom",[]);
 app.service('messageService', function ($rootScope, $http) {
     var self = this;
     var nickname;
-    this.startConnect = function (userName) {
+    this.startConnect = function (userName, msgRecCallback) {
         nickname = userName;
         $http({
             url: "/ms/connect?userName=" + userName,           //请求的url路径
@@ -40,9 +40,9 @@ app.service('messageService', function ($rootScope, $http) {
             } else {
                 //处理消息
                 console.log("notified!");
-                self.onReceiveMessage();
+                self.onReceiveMessage(msgRecCallback);
             }
-            self.startConnect(userName);
+            self.startConnect(userName,msgRecCallback);
 
         }).error(function (data, header, config, status) {
             //错误处理
@@ -59,12 +59,9 @@ app.service('messageService', function ($rootScope, $http) {
         }).success(function (data, status, header, config, statusText) {
             console.log(data);
             if (data.length > 0) {
-                var args = data;
-                $rootScope.$apply(function() {
                 if(callback) {
-                    callback.apply(args);
+                    callback(data);
                 }
-            });
             }
         }).error(function (data, header, config, status) {
             console.log(data);
@@ -102,13 +99,35 @@ app.controller("chatCtrl",['$scope','$http', 'randomColor','userService', 'messa
     $scope.receiver="";//默认是群聊
     $scope.publicMessages=[];//群聊消息
     $scope.privateMessages={};//私信消息
-    $scope.messages=$scope.publicMessages;//默认显示群聊
+    $scope.messages=$scope.privateMessages;
+    //$scope.messages=$scope.publicMessages;//默认显示群聊
     $scope.users=[];//
     $scope.color=randomColor.newColor();//当前用户头像颜色
     $scope.login=function(){   //登录进入聊天室
         //socket.emit("addUser",{nickname:$scope.nickname,color:$scope.color});
         $scope.userExisted=false;
         $scope.hasLogined=true;
+
+        messageService.startConnect($scope.nickname, function (data) {
+            angular.forEach(data, function(value, key) {
+                //this.push(key + ': ' + value);
+
+                console.log(value);
+                value.type = "normal";
+                if(!$scope.privateMessages[value.from]){
+                    $scope.privateMessages[value.from]=[];
+                }
+                $scope.privateMessages[value.from].push(value);
+
+                var fromUser=userService.get($scope.users,value.from);
+                var toUser=userService.get($scope.users,value.to);
+                fromUser.hasNewMessage = true;//私信
+
+
+            });
+
+            $scope.messages=$scope.privateMessages;
+        });
 
         //get online users;
         $http({
@@ -128,7 +147,7 @@ app.controller("chatCtrl",['$scope','$http', 'randomColor','userService', 'messa
             //错误处理
             console.error(data);
         });
-        messageService.startConnect($scope.nickname);
+
     }
 
     $scope.scrollToBottom=function(){
