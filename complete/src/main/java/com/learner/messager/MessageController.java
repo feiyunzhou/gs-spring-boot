@@ -89,6 +89,7 @@ public class MessageController {
     public void returnLongPollingValue(HttpServletRequest req, @RequestBody InboxMessage msg){
         //save message to the inbox
         msg.setTime(UUIDs.timeBased());
+        msg.setMessageType(MessageType.TEXT);
         inboxMessageRepository.save(msg);
         if (deferredResultMap.containsKey(msg.getTo())) {
             DeferredResult defRes = (DeferredResult) deferredResultMap.get(msg.getTo());

@@ -25,6 +25,8 @@ public class InboxMessage implements Serializable {
     private String msg;
     @Column("from_user")
     private String from;
+    @Column("message_type")
+    private MessageType messageType;
 
     public InboxMessage() {}
     public InboxMessage(String to, UUID time, String msg, String from) {
