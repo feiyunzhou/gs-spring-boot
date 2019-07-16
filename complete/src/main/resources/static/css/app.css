@@ -70,6 +70,7 @@ body{
     position: absolute;
     bottom: 0;
     width: 100%;
+    padding: 10px 15px 50px;
 }
 .chat-room-wrapper .panel-footer input[type='text']{
     width: 90%;

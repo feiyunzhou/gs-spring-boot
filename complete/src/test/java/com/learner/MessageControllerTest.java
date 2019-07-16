@@ -52,6 +52,8 @@ public class MessageControllerTest {
     FollowerRepository followerRepository;
     @Autowired
     TweetRepository tweetRepository;
+    @Autowired
+    MsgThreadRepo msgThreadRepo;
 
     @Test
     public void getHello() throws Exception {
@@ -148,5 +150,31 @@ public class MessageControllerTest {
         //log.info(next);
         //log.info(records.getSize());
         records.stream().forEach(log::info);
+    }
+
+    @Test
+    public void messageThreadTest() throws Exception {
+        MsgThread msgThread = new MsgThread();
+        Date createTime = new Date();
+        msgThread.setCreateTime(createTime);
+        UUID id = UUID.randomUUID();
+        msgThread.setThreadId(id);
+        msgThread.setThreadType(0);
+        msgThread.setUserName("test1");
+        msgThreadRepo.save(msgThread);
+
+        msgThread = new MsgThread();
+        msgThread.setUserName("test2");
+        msgThread.setCreateTime(createTime);
+        msgThread.setThreadId(id);
+        msgThread.setThreadType(0);
+        msgThreadRepo.save(msgThread);
+    }
+
+    @Test
+    public void threadQueryTest() {
+        List<MsgThread> threads = msgThreadRepo.findMsgThreadsByUserName("test1");
+        //log.info(threads);
+        threads.stream().forEach(log::info);
     }
 }

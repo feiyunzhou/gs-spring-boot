@@ -148,7 +148,7 @@ app.controller("chatCtrl",['$scope','$http', '$timeout',
 
                 var fromUser=userService.get($scope.users,value.from);
                 var toUser=userService.get($scope.users,value.to);
-                //fromUser.hasNewMessage = true;//私信
+                fromUser.hasNewMessage = true;//私信
             });
 
            // $scope.messages=$scope.privateMessages;
