@@ -49,6 +49,8 @@ public class MessageController {
     private final Map deferredResultMap=new ConcurrentReferenceHashMap<>();
     @Autowired
     private InboxMessageRepository inboxMessageRepository;
+    @Autowired
+    private MsgThreadRepo msgThreadRepo;
 
     @GetMapping("/")
     public String index() {
@@ -100,6 +102,22 @@ public class MessageController {
         //defRes.setResult(ResponseEntity.ok().body("I receive msg from " + from));
     }
 
+    /**
+     * participants中的第一个用户就是创建thread的owner
+     * @param participants
+     */
+    @PostMapping("/thread")
+    public MsgThread createThread(@RequestBody List<String> participants) {
+        List<MsgThread> threads = msgThreadRepo.findMsgThreadsByUserName(participants.get(0));
+        for (MsgThread thread : threads) {
+            List<MsgThread> threadUsers = msgThreadRepo.getMsgThreadsByThreadId(thread.getThreadId());
+            if (participants.size() == 2) {
+                //单聊
+            } else {
+                //群聊
+            }
+        }
+    }
     @GetMapping("/msg")
     public List<InboxMessage> fetchMessageByUser(HttpServletRequest req, String userName, String uuid) throws Exception {
         log.info(String.format("met msg for username:%s, uuid:%s", userName, uuid));
