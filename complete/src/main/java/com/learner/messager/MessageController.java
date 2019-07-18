@@ -51,6 +51,8 @@ public class MessageController {
     private InboxMessageRepository inboxMessageRepository;
     @Autowired
     private MsgThreadRepo msgThreadRepo;
+    @Autowired
+    private UserThreadRepo userThreadRepo;
 
     @GetMapping("/")
     public String index() {
@@ -104,19 +106,34 @@ public class MessageController {
 
     /**
      * participants中的第一个用户就是创建thread的owner
-     * @param participants
+     * 是否创建thread由客户端来决定。
+     * @param msgThread
      */
     @PostMapping("/thread")
-    public MsgThread createThread(@RequestBody List<String> participants) {
-        List<MsgThread> threads = msgThreadRepo.findMsgThreadsByUserName(participants.get(0));
-        for (MsgThread thread : threads) {
-            List<MsgThread> threadUsers = msgThreadRepo.getMsgThreadsByThreadId(thread.getThreadId());
-            if (participants.size() == 2) {
-                //单聊
-            } else {
-                //群聊
-            }
+    public MsgThread createThread(@RequestBody MsgThread msgThread) {
+        //List<UserThread> threads = userThreadRepo.getUserThreadsByUserName(msgThread.getOwner());
+        UUID threadId = UUID.randomUUID();
+        msgThread.setThreadId(threadId);
+        msgThread.getParticipants().add(msgThread.getOwner());
+        msgThread.setCreateTime(new Date());
+        msgThread.setModifyTime(new Date());
+        msgThread.setThreadType(0);
+        MsgThread thread = msgThreadRepo.save(msgThread);
+
+        for (String u : msgThread.getParticipants()) {
+            UserThread userThread = new UserThread();
+            userThread.setThreadId(threadId);
+            userThread.setUserName(u);
+            userThreadRepo.save(userThread);
         }
+        return thread;
+    }
+    @GetMapping("/thread")
+    public List<MsgThread> fetchThreadsByUser(String userName) {
+        List<UserThread> threadIds = userThreadRepo.getUserThreadsByUserName(userName);
+        List<UUID> ids = threadIds.stream().map(t -> t.getThreadId()).collect(Collectors.toList());
+        List<MsgThread> threads = msgThreadRepo.getMsgThreadsByThreadIdIn(ids);
+        return threads;
     }
     @GetMapping("/msg")
     public List<InboxMessage> fetchMessageByUser(HttpServletRequest req, String userName, String uuid) throws Exception {

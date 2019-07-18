@@ -160,11 +160,11 @@ public class MessageControllerTest {
         UUID id = UUID.randomUUID();
         msgThread.setThreadId(id);
         msgThread.setThreadType(0);
-        msgThread.setUserName("test1");
+        msgThread.setOwner("test1");
         msgThreadRepo.save(msgThread);
 
         msgThread = new MsgThread();
-        msgThread.setUserName("test2");
+        msgThread.setOwner("test2");
         msgThread.setCreateTime(createTime);
         msgThread.setThreadId(id);
         msgThread.setThreadType(0);
@@ -173,8 +173,8 @@ public class MessageControllerTest {
 
     @Test
     public void threadQueryTest() {
-        List<MsgThread> threads = msgThreadRepo.findMsgThreadsByUserName("test1");
+        MsgThread threads = msgThreadRepo.getMsgThreadsByThreadId(UUID.fromString("aa"));
         //log.info(threads);
-        threads.stream().forEach(log::info);
+        //threads.stream().forEach(log::info);
     }
 }
