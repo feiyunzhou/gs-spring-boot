@@ -1,6 +1,7 @@
 
 var app=angular.module("chatRoom",[]);
 var lastMsgId = null;
+var threadIds = {};
 /*app.factory('socket', function($rootScope) {
     var socket = io(); //默认连接部署网站的服务器
     return {
@@ -127,6 +128,8 @@ app.controller("chatCtrl",['$scope','$http', '$timeout',
     //$scope.messages=$scope.publicMessages;//默认显示群聊
     $scope.users=[];
     $scope.userNames = {};
+    //获取threads
+    $scope.threads =[];
     $scope.color=randomColor.newColor();//当前用户头像颜色
     $scope.login=function(){   //登录进入聊天室
         //socket.emit("addUser",{nickname:$scope.nickname,color:$scope.color});
@@ -140,11 +143,27 @@ app.controller("chatCtrl",['$scope','$http', '$timeout',
                 //this.push(key + ': ' + value);
 
                 console.log(value);
-                value.type = "normal";
-                if(!$scope.privateMessages[value.from]){
-                    $scope.privateMessages[value.from]=[];
+                if (threadIds[value.threadId] == undefined) {
+                    //需要根据threadId查询thread信息
+                    $http({
+                        url:"/ms/thread/"+value.threadId,           //请求的url路径
+                        method:'GET'
+                    }).success(function(data, status, header, config, statusText){
+                        console.log(data);
+                        if (data != null) {
+                            $scope.threads.push(data);
+                        }
+                    }).error(function(data,header,config,status){
+                        console.error(data);
+                    });
                 }
-                $scope.privateMessages[value.from].push(value);
+
+                value.type = "normal";
+                if(!$scope.privateMessages[value.threadId]){
+                    $scope.privateMessages[value.threadId]=[];
+
+                }
+                $scope.privateMessages[value.threadId].push(value);
 
                 var fromUser=userService.get($scope.users,value.from);
                 var toUser=userService.get($scope.users,value.to);
@@ -182,6 +201,30 @@ app.controller("chatCtrl",['$scope','$http', '$timeout',
                 console.error(data);
             });
         },5000);
+
+        //获取thread信息
+        $timeout(function () {
+            //get online users;
+            $http({
+                url:"/ms/thread?userName="+ $scope.nickname,           //请求的url路径
+                method:'GET'
+            }).success(function(data, status, header, config, statusText){
+                console.log(data);
+                if (data != null) {
+                    $scope.threads = [];
+                    for(var i=0;i<data.length;i++){
+                        $scope.threads.push(data[i]);
+                        threadIds[data[i].threadId] = data[i].threadId;
+                    }
+                }
+
+            }).error(function(data,header,config,status){
+                //错误处理
+                console.error(data);
+            });
+        },500);
+
+
     }//end login
 
     $scope.scrollToBottom=function(){
@@ -316,4 +359,21 @@ app.directive('message', ['$timeout',function($timeout) {
                 });
             }
         };
-    }]);
+    }])
+
+    .directive('thread', ['$timeout',function($timeout) {
+    return {
+        restrict: 'E',
+        templateUrl: 'thread.html',
+        scope:{
+            info:"=",
+            iscurrentreceiver:"=",
+            setthread:"&"
+        },
+        link:function(scope, elem, attrs,chatCtrl){
+            $timeout(function(){
+                elem.find('.avatar').css('background',scope.info.color);
+            });
+        }
+    };
+}]);

@@ -104,4 +104,11 @@ public class WelcomeController {
 
         return "message"; //view
     }
+    @GetMapping("/thread.html")
+    public String threadperage(Model model) {
+
+        //model.addAttribute("message", name);
+
+        return "thread"; //view
+    }
 }

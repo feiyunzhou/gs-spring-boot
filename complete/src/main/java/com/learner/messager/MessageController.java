@@ -1,6 +1,7 @@
 package com.learner.messager;
 
 import com.datastax.driver.core.utils.UUIDs;
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
@@ -101,6 +102,7 @@ public class MessageController {
         msg.setTime(UUIDs.timeBased());
         msg.setMessageType(MessageType.TEXT);
         inboxMessageRepository.save(msg);
+
         if (deferredResultMap.containsKey(msg.getTo())) {
             DeferredResult defRes = (DeferredResult) deferredResultMap.get(msg.getTo());
             Gson gson = new Gson();
@@ -110,6 +112,42 @@ public class MessageController {
         //defRes.setResult(ResponseEntity.ok().body("I receive msg from " + from));
     }
 
+    /**
+     * Post消息得时候需要post到某个thread中去，而不是发送到某个用户中去
+     * @param req
+     * @param msg
+     * @return
+     * @throws Exception
+     */
+    @PostMapping("/thread/msg")
+    public ResponseEntity postMsgToThread(HttpServletRequest req, @RequestBody InboxMessage msg) throws Exception {
+        UUID threadId =  msg.getThreadId();
+        MsgThread threadInfo = msgThreadRepo.getMsgThreadsByThreadId(threadId);
+
+        if (threadInfo == null) {
+            return ResponseEntity.badRequest().body("threadId is invalid");
+        }
+        if (!threadInfo.getParticipants().contains(msg.getFrom())) {
+            return ResponseEntity.badRequest().body("the user is not in this thread, and not allow to send the msg");
+        }
+        if (!threadInfo.getParticipants().contains(msg.getTo())) {
+            return ResponseEntity.badRequest().body("the user is not in this thread, and not allow to receive the msg");
+        }
+
+        //save message to the inbox
+        msg.setTime(UUIDs.timeBased());
+        msg.setMessageType(MessageType.TEXT);
+
+        inboxMessageRepository.save(msg);
+
+        if (deferredResultMap.containsKey(msg.getTo())) {
+            DeferredResult defRes = (DeferredResult) deferredResultMap.get(msg.getTo());
+            Gson gson = new Gson();
+            defRes.setResult(gson.toJson("new msg"));
+        }
+        log.info(deferredResultMap);
+        return ResponseEntity.ok(msg);
+    }
     /**
      * participants中的第一个用户就是创建thread的owner
      * 是否创建thread由客户端来决定。
@@ -139,7 +177,18 @@ public class MessageController {
         List<UserThread> threadIds = userThreadRepo.getUserThreadsByUserName(userName);
         List<UUID> ids = threadIds.stream().map(t -> t.getThreadId()).collect(Collectors.toList());
         List<MsgThread> threads = msgThreadRepo.getMsgThreadsByThreadIdIn(ids);
+        threads.stream().forEach(t -> {
+            List<String> parts = t.getParticipants().stream().filter(u -> !u.equalsIgnoreCase(userName)).collect(Collectors.toList());
+            t.setName(Joiner.on(",").join(parts));
+        });
         return threads;
+    }
+
+    @GetMapping("/thread/{id}")
+    public MsgThread fetchThreadsByUser(String userName, @PathVariable("id") String id) {
+        MsgThread thread = msgThreadRepo.getMsgThreadsByThreadId(UUID.fromString(id));
+        thread.setName(Joiner.on(",").join(thread.getParticipants().stream().filter(u -> !u.equalsIgnoreCase(userName)).collect(Collectors.toList())));
+        return thread;
     }
     @GetMapping("/msg")
     public List<InboxMessage> fetchMessageByUser(HttpServletRequest req, String userName, String uuid) throws Exception {

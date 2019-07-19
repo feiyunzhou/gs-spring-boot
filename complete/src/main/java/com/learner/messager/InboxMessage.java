@@ -27,6 +27,8 @@ public class InboxMessage implements Serializable {
     private String from;
     @Column("message_type")
     private MessageType messageType;
+    @Column("thread_id")
+    private UUID threadId;
 
     public InboxMessage() {}
     public InboxMessage(String to, UUID time, String msg, String from) {
@@ -34,6 +36,14 @@ public class InboxMessage implements Serializable {
         this.msg = msg;
         this.from = from;
         this.time = time;
+    }
+
+    public InboxMessage(String to, UUID time, String msg, String from, UUID threadId) {
+        this.to = to;
+        this.msg = msg;
+        this.from = from;
+        this.time = time;
+        this.threadId = threadId;
     }
 
     public static InboxMessage createInboxMessage(String to, String msg, String from) {
