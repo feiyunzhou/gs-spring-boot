@@ -130,23 +130,31 @@ public class MessageController {
         if (!threadInfo.getParticipants().contains(msg.getFrom())) {
             return ResponseEntity.badRequest().body("the user is not in this thread, and not allow to send the msg");
         }
-        if (!threadInfo.getParticipants().contains(msg.getTo())) {
-            return ResponseEntity.badRequest().body("the user is not in this thread, and not allow to receive the msg");
-        }
 
-        //save message to the inbox
-        msg.setTime(UUIDs.timeBased());
-        msg.setMessageType(MessageType.TEXT);
+        Iterator<String> it = threadInfo.getParticipants().iterator();
+        int count = 0;
+        while (it.hasNext()) {
+            String to = it.next();
+            if (to.equalsIgnoreCase(msg.getFrom())) continue;
 
-        inboxMessageRepository.save(msg);
-
-        if (deferredResultMap.containsKey(msg.getTo())) {
-            DeferredResult defRes = (DeferredResult) deferredResultMap.get(msg.getTo());
-            Gson gson = new Gson();
-            defRes.setResult(gson.toJson("new msg"));
+            InboxMessage deliveredMsg = InboxMessage.createInboxMessage(to, msg.getMsg(), msg.getFrom());
+            deliveredMsg.setTime(UUIDs.timeBased());
+            deliveredMsg.setMessageType(MessageType.TEXT);
+            deliveredMsg.setThreadId(msg.getThreadId());
+            /**
+             * @ TODO
+             * 如果群聊的数量特别多的时候，这里是一个瓶颈，需要分批发送消息。应该放到队列中，由队列去处理
+             */
+            inboxMessageRepository.save(deliveredMsg);
+            if (deferredResultMap.containsKey(to)) {
+                DeferredResult defRes = (DeferredResult) deferredResultMap.get(deliveredMsg.getTo());
+                Gson gson = new Gson();
+                defRes.setResult(gson.toJson("new msg"));
+            }
+            count++;
         }
         log.info(deferredResultMap);
-        return ResponseEntity.ok(msg);
+        return ResponseEntity.ok(count);
     }
     /**
      * participants中的第一个用户就是创建thread的owner

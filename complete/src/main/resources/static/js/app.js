@@ -77,7 +77,7 @@ app.service('messageService', function ($rootScope, $http) {
     this.sendMsg = function (msg) {
         console.log("will send message");
         $http({
-            url: "/ms/msg",           //请求的url路径
+            url: "/ms/thread/msg",           //请求的url路径
             method: 'POST',
             data: msg
         }).success(function (data, status, header, config, statusText) {
@@ -116,8 +116,29 @@ app.factory('userService', function($rootScope) {
     };
 });
 
+app.factory('threadService', function($rootScope) {
+    return {
+        get: function(threads,threadId) {
+            if(threads instanceof Array){
+                for(var i=0;i<threads.length;i++){
+                    if(threads[i].threadId===threadId){
+                        return threads[i];
+                    }
+                }
+            }else{
+                return null;
+            }
+        },
+
+        getOnlineUsers: function (callback) {
+
+        }
+    };
+});
+
 app.controller("chatCtrl",['$scope','$http', '$timeout',
-    '$interval', 'randomColor','userService', 'messageService',function($scope,$http,$timeout,$interval,randomColor,userService, messageService){
+    '$interval', 'randomColor','userService', 'messageService', 'threadService',
+    function($scope,$http,$timeout,$interval,randomColor,userService, messageService, threadService){
     var messageWrapper= $('.message-wrapper');
     $scope.hasLogined=false;
     $scope.receiver="";//默认是群聊
@@ -137,8 +158,8 @@ app.controller("chatCtrl",['$scope','$http', '$timeout',
         $scope.hasLogined=true;
 
         messageService.startConnect($scope.nickname, function (data) {
+            //收到消息，对消息处理函数
 
-            //消息处理
             angular.forEach(data, function(value, key) {
                 //this.push(key + ': ' + value);
 
@@ -165,9 +186,12 @@ app.controller("chatCtrl",['$scope','$http', '$timeout',
                 }
                 $scope.privateMessages[value.threadId].push(value);
 
-                var fromUser=userService.get($scope.users,value.from);
-                var toUser=userService.get($scope.users,value.to);
-                fromUser.hasNewMessage = true;//私信
+                var msgThread = threadService.get($scope.threads, value.threadId);
+                msgThread.hasNewMessage = true;
+                //var fromUser=userService.get($scope.users,value.from);
+                //var toUser=userService.get($scope.users,value.to);
+                //fromUser.hasNewMessage = true;//私信
+                //threadIds[value.threadId].hasNewMessage = true;
             });
 
            // $scope.messages=$scope.privateMessages;
@@ -232,7 +256,7 @@ app.controller("chatCtrl",['$scope','$http', '$timeout',
     }
 
     $scope.postMessage=function(){
-        var msg={msg:$scope.words,type:"normal",color:$scope.color,from:$scope.nickname,to:$scope.receiver};
+        var msg={msg:$scope.words,type:"normal",color:$scope.color,from:$scope.nickname,to:$scope.receiver, threadId:$scope.receiver};
         var rec=$scope.receiver;
         if(rec){  //私信
            if(!$scope.privateMessages[rec]){
@@ -248,19 +272,19 @@ app.controller("chatCtrl",['$scope','$http', '$timeout',
             messageService.sendMsg(msg);
         }
     }
-    $scope.setReceiver=function(receiver){
-        $scope.receiver=receiver;
-        if(receiver){ //私信用户
-            if(!$scope.privateMessages[receiver]){
-                $scope.privateMessages[receiver]=[];
+    $scope.setReceiver=function(threadId){
+        $scope.receiver=threadId;
+        if(threadId){ //私信用户
+            if(!$scope.privateMessages[threadId]){
+                $scope.privateMessages[threadId]=[];
             }
-            $scope.messages=$scope.privateMessages[receiver];
+            $scope.messages=$scope.privateMessages[threadId];
         }else{//广播
             $scope.messages=$scope.publicMessages;
         }
-        var user=userService.get($scope.users,receiver);
-        if(user){
-            user.hasNewMessage=false;
+        var thrd=threadService.get($scope.threads,threadId);
+        if(thrd){
+            thrd.hasNewMessage=false;
         }
     }
 
