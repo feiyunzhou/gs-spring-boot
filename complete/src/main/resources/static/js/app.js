@@ -158,11 +158,11 @@ app.controller("chatCtrl",['$scope','$http', '$timeout',
         $scope.hasLogined=true;
 
         messageService.startConnect($scope.nickname, function (data) {
-            //收到消息，对消息处理函数
+            //收到消息，对消息处理函数, 最新的消息在列表的最前面
 
-            angular.forEach(data, function(value, key) {
+            for (var i = data.length - 1; i >= 0; i--) {
                 //this.push(key + ': ' + value);
-
+                var value = data[i];
                 console.log(value);
                 if (threadIds[value.threadId] == undefined) {
                     //需要根据threadId查询thread信息
@@ -192,7 +192,7 @@ app.controller("chatCtrl",['$scope','$http', '$timeout',
                 //var toUser=userService.get($scope.users,value.to);
                 //fromUser.hasNewMessage = true;//私信
                 //threadIds[value.threadId].hasNewMessage = true;
-            });
+            }
 
            // $scope.messages=$scope.privateMessages;
         });
