@@ -180,6 +180,59 @@ public class MessageController {
         }
         return thread;
     }
+
+    /**
+     * 将用户添加进thread，使用MsgThread作为对象传递参数：使用threadId和participants
+     * @param msgThread
+     * @return
+     */
+    @PutMapping("/thread/add-user")
+    public MsgThread addUserIntoThread(@RequestBody MsgThread msgThread) {
+        MsgThread threadInfo = msgThreadRepo.getMsgThreadsByThreadId(msgThread.getThreadId());
+        Set<String> newUsers = msgThread.getParticipants();
+
+        Set<String> olderUsers = threadInfo.getParticipants();
+
+        List<String> addings = newUsers.stream().filter(u -> !olderUsers.contains(u)).collect(Collectors.toList());
+
+        //为用户建立索引，需要删除
+        for (String u : addings) {
+            UserThread userThread = new UserThread();
+            userThread.setThreadId(threadInfo.getThreadId());
+            userThread.setUserName(u);
+            threadInfo.getParticipants().add(u);
+            userThreadRepo.save(userThread);
+            olderUsers.add(u);
+        }
+        MsgThread res = msgThreadRepo.save(threadInfo);
+        return res;
+    }
+
+    /**
+     * 把用户从thread中删除出去
+     * @param msgThread
+     * @return
+     */
+    @PutMapping("/thread/rm-user")
+    public MsgThread removeUserFromThread(@RequestBody MsgThread msgThread) {
+        MsgThread threadInfo = msgThreadRepo.getMsgThreadsByThreadId(msgThread.getThreadId());
+        Set<String> rmUsers = msgThread.getParticipants();
+
+        Set<String> currentUsers = threadInfo.getParticipants();
+
+        List<String> removings = rmUsers.stream().filter(u -> currentUsers.contains(u)).collect(Collectors.toList());
+
+        //为用户建立索引，需要删除
+        for (String u : removings) {
+            UserThread userThread = new UserThread();
+            userThread.setThreadId(threadInfo.getThreadId());
+            userThread.setUserName(u);
+            userThreadRepo.delete(userThread);
+            currentUsers.remove(u);
+        }
+        MsgThread res = msgThreadRepo.save(threadInfo);
+        return res;
+    }
     @GetMapping("/thread")
     public List<MsgThread> fetchThreadsByUser(String userName) {
         List<UserThread> threadIds = userThreadRepo.getUserThreadsByUserName(userName);
